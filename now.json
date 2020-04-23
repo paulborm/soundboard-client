@@ -3,5 +3,10 @@
   "github": {
     "enabled": false,
     "silent": true
+  },
+  "build": {
+    "env": {
+      "REACT_APP_API_URL": "@api-url"
+    }
   }
 }
