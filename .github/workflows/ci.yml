@@ -9,8 +9,8 @@ on:
     types: [published]
 
 env:
-  ZEIT_NOW_SCOPE: ${{ secrets.ZEIT_NOW_SCOPE }}
-  ZEIT_NOW_TOKEN: ${{ secrets.ZEIT_NOW_TOKEN }}
+  VERCEL_SCOPE: ${{ secrets.ZEIT_NOW_SCOPE }}
+  VERCEL_TOKEN: ${{ secrets.ZEIT_NOW_TOKEN }}
 
 jobs:
   deploy_preview:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
       - run: |
-          npx now --scope "$ZEIT_NOW_SCOPE" --token "$ZEIT_NOW_TOKEN" --confirm --no-clipboard
+          npx vercel --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" --confirm --no-clipboard
 
   deploy_prod:
     name: "Deploy to Production"
@@ -31,4 +31,4 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
       - run: |
-          npx now --scope "$ZEIT_NOW_SCOPE" --token "$ZEIT_NOW_TOKEN" --prod --confirm --no-clipboard
+          npx vercel --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" --prod --confirm --no-clipboard
