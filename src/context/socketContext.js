@@ -1,12 +1,9 @@
-import React, { createContext, useState } from "react";
-import io from "socket.io-client";
+import React, { createContext } from "react";
 
 export const SocketContext = createContext();
 
-export const SocketProvider = ({ children }) => {
-  const [socket] = useState(() => io(process.env.REACT_APP_API_URL));
+const socket = new WebSocket(process.env.REACT_APP_SOCKET_URL);
 
-  return (
-    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
-  );
-};
+export const SocketProvider = ({ children }) => (
+  <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
+);
