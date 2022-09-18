@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Howl } from "howler";
 import styled from "styled-components";
 import randomColor from "random-color";
@@ -134,7 +134,7 @@ const SoundItem = ({ id, name, audio, image, onPlay }) => {
   const [sound] = useState(
     new Howl({
       src: audio.src,
-      preload: true
+      preload: true,
     })
   );
 
@@ -151,7 +151,7 @@ const SoundItem = ({ id, name, audio, image, onPlay }) => {
     };
   }, [sound]);
 
-  const handleKeyPress = event => {
+  const handleKeyPress = (event) => {
     event && event.preventDefault();
     // Keys: [Space|Return]
     if (event.which === 13 || event.which === 32) {
@@ -160,7 +160,7 @@ const SoundItem = ({ id, name, audio, image, onPlay }) => {
     return;
   };
 
-  const handleOnPlay = event => {
+  const handleOnPlay = (event) => {
     event && event.preventDefault();
     if (onPlay) {
       onPlay({ id });
