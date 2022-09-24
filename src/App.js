@@ -246,43 +246,31 @@ function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { user, users } = state;
 
-  console.log({ user, users, socket });
-
-  // console.log({ state });
   useEffect(() => {
     const handleUserLogin = ({ users: incomingUsers, user: incomingUser }) => {
-      console.log(`[event:userlogin]`, incomingUser, incomingUsers);
       const entries = incomingUsers.map((item) => Object.values(item));
-      console.log("handleUserLogin", { entries, incomingUser });
       dispatch({ type: "login", users: entries, user: incomingUser });
     };
 
     const handleUserJoined = ({ users: incomingUsers, user: incomingUser }) => {
-      console.log(`[event:userjoined]: user: "${incomingUser?.name}"`);
       dispatch({ type: "add_user", user: incomingUser });
     };
 
     const handleUserUpdate = ({ user: incomingUser }) => {
-      console.log(`[event:userupdated]`, incomingUser.id, incomingUser.name);
       dispatch({ type: "update_user", user: incomingUser });
     };
 
     const handleUserLeft = ({ user: incomingUser }) => {
-      console.log(`[event:userleft]: user: "${incomingUser?.name}"`);
       dispatch({ type: "remove_user", user: incomingUser });
     };
 
     const handleSoundEvent = ({ user: incomingUser, sound }) => {
-      console.log(
-        `[event:sound] user: "${incomingUser.name}" is playing "${sound?.name}"`
-      );
       if (incomingUser.id !== user.id) {
         playAudio(sound.audio.src);
       }
     };
 
     const onOpen = () => {
-      console.log(`[event:open]`);
       socket.send(
         JSON.stringify({
           type: "adduser",
@@ -292,8 +280,6 @@ function App() {
     };
 
     const onMessage = (event) => {
-      console.log(`[event:message]`);
-
       const data = JSON.parse(event.data);
 
       if (data.type === "userlogin") {
@@ -321,7 +307,6 @@ function App() {
     socket.addEventListener("message", onMessage);
 
     return () => {
-      console.log("effect cleanup");
       socket.removeEventListener("open", onOpen);
       socket.removeEventListener("message", onMessage);
       socket.close();
