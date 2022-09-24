@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v3
         with:
-          node-version: $NODE_VERSION
+          node-version: ${{ env.NODE_VERSION }}
       - run: |
           npx vercel --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" --confirm --no-clipboard
 
@@ -34,6 +34,6 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v3
         with:
-          node-version: $NODE_VERSION
+          node-version: ${{ env.NODE_VERSION }}
       - run: |
           npx vercel --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" --prod --confirm --no-clipboard
