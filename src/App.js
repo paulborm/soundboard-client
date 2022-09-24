@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useReducer } from "react";
 import styled, { css } from "styled-components";
-import { useSounds, useSocket, useLocalStorage } from "./hooks";
+import { useSounds } from "./hooks";
 import SoundItem from "./components/SoundItem";
 import { playAudio } from "./helpers";
 
@@ -125,7 +125,8 @@ function UserForm({ value, onSubmit }) {
     username.length <= maxLength &&
     typeof username === "string";
 
-  const handleClick = () => {
+  const handleClick = (event) => {
+    event.preventDefault();
     setDisabled(false);
     setTimeout(() => {
       inputRef.current.focus();
@@ -148,7 +149,7 @@ function UserForm({ value, onSubmit }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} onClick={handleClick}>
+    <form onSubmit={handleSubmit}>
       <label htmlFor="username">@</label>
       <UsernameInput
         ref={inputRef}
@@ -159,7 +160,6 @@ function UserForm({ value, onSubmit }) {
         type="text"
         value={username || ""}
         disabled={disabled}
-        onBlur={handleBlur}
       />
       {disabled && (
         <button type="button" onClick={handleClick} title="Edit Username">
@@ -179,85 +179,171 @@ function UserForm({ value, onSubmit }) {
   );
 }
 
+const initialState = {
+  users: new Map(),
+  user: {},
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "update_user": {
+      const users = new Map(state.users);
+      users.set(action.user.id, action.user.name);
+
+      if (action.user.id === state.user.id) {
+        return {
+          ...state,
+          users,
+          user: action.user,
+        };
+      }
+
+      return {
+        ...state,
+        users,
+      };
+    }
+    case "login": {
+      const users = new Map([...state.users, ...action.users]);
+
+      return {
+        ...state,
+        users,
+        user: action.user,
+      };
+    }
+    case "add_user": {
+      const users = new Map(state.users);
+      users.set(action.user.id, action.user.name);
+
+      return {
+        ...state,
+        users,
+      };
+    }
+    case "remove_user": {
+      const users = new Map(state.users);
+
+      if (action.user) {
+        users.delete(action.user.id);
+      }
+
+      return {
+        ...state,
+        users,
+      };
+    }
+    default: {
+      throw Error("Unknown action: " + action.type);
+    }
+  }
+}
+
+const socket = new WebSocket(process.env.REACT_APP_SOCKET_URL);
+
 function App() {
-  const socket = useSocket();
   const { status: soundsStatus, data: sounds } = useSounds();
-  const [numUsers, setNumUsers] = useState(0);
-  const [users, setUsers] = useState([]);
-  const [user, setUser] = useState({});
-  const [localUsername, setLocalUsername] = useLocalStorage("username");
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const { user, users } = state;
 
+  console.log({ user, users, socket });
+
+  // console.log({ state });
   useEffect(() => {
-    const handleUserLogin = ({ numUsers, users, user }) => {
-      console.log(`[user login]`, user);
-      setNumUsers(numUsers);
-      setUsers(users);
-      setUser(user);
-    };
-    const handleUserJoined = ({ numUsers, users, user }) => {
-      console.log(
-        `[user joined]: numUsers: "${numUsers}", user: "${user?.name}"`
-      );
-      setNumUsers(numUsers);
-      setUsers(users);
-    };
-    const handleUserLeft = ({ numUsers, users, user }) => {
-      console.log(
-        `[user left]: numUsers: "${numUsers}", user: "${user?.name}"`
-      );
-      setNumUsers(numUsers);
-      setUsers(users);
-    };
-    const handleUsersUpdate = ({ users }) => {
-      console.log(`[users updated]`);
-      setUsers(users);
-    };
-    const handleUserUpdate = ({ user }) => {
-      console.log(`[user updated]`);
-      setUser(user);
+    const handleUserLogin = ({ users: incomingUsers, user: incomingUser }) => {
+      console.log(`[event:userlogin]`, incomingUser, incomingUsers);
+      const entries = incomingUsers.map((item) => Object.values(item));
+      console.log("handleUserLogin", { entries, incomingUser });
+      dispatch({ type: "login", users: entries, user: incomingUser });
     };
 
-    const handleSoundEvent = ({ user, sound }) => {
-      console.log(`[sound] user: "${user?.name}" is playing "${sound?.name}"`);
+    const handleUserJoined = ({ users: incomingUsers, user: incomingUser }) => {
+      console.log(`[event:userjoined]: user: "${incomingUser?.name}"`);
+      dispatch({ type: "add_user", user: incomingUser });
+    };
+
+    const handleUserUpdate = ({ user: incomingUser }) => {
+      console.log(`[event:userupdated]`, incomingUser.id, incomingUser.name);
+      dispatch({ type: "update_user", user: incomingUser });
+    };
+
+    const handleUserLeft = ({ user: incomingUser }) => {
+      console.log(`[event:userleft]: user: "${incomingUser?.name}"`);
+      dispatch({ type: "remove_user", user: incomingUser });
+    };
+
+    const handleSoundEvent = ({ user: incomingUser, sound }) => {
+      console.log(
+        `[event:sound] user: "${incomingUser.name}" is playing "${sound?.name}"`
+      );
       playAudio(sound.audio.src);
     };
 
-    socket.emit("add user", { name: localUsername });
+    const onOpen = () => {
+      console.log(`[event:open]`);
+      socket.send(
+        JSON.stringify({
+          type: "adduser",
+          name: window.localStorage.getItem("username"),
+        })
+      );
+    };
 
-    socket.on("user login", handleUserLogin);
-    socket.on("user joined", handleUserJoined);
-    socket.on("user left", handleUserLeft);
-    socket.on("users updated", handleUsersUpdate);
-    socket.on("user updated", handleUserUpdate);
-    socket.on("sound", handleSoundEvent);
+    const onMessage = (event) => {
+      console.log(`[event:message]`);
+
+      const data = JSON.parse(event.data);
+
+      if (data.type === "userlogin") {
+        handleUserLogin({ users: data.users, user: data.user });
+      }
+
+      if (data.type === "userjoined") {
+        handleUserJoined({ users: data.users, user: data.user });
+      }
+
+      if (data.type === "userupdated") {
+        handleUserUpdate({ user: data.user });
+      }
+
+      if (data.type === "sound") {
+        handleSoundEvent({ user: data.user, sound: data.sound });
+      }
+
+      if (data.type === "userleft") {
+        handleUserLeft({ user: data.user });
+      }
+    };
+
+    socket.addEventListener("open", onOpen);
+    socket.addEventListener("message", onMessage);
 
     return () => {
-      socket.off("user login", handleUserLogin);
-      socket.off("user joined", handleUserJoined);
-      socket.off("users updated", handleUsersUpdate);
-      socket.off("user updated", handleUserUpdate);
-      socket.off("user left", handleUserLeft);
+      console.log("effect cleanup");
+      socket.removeEventListener("open", onOpen);
+      socket.removeEventListener("message", onMessage);
+      socket.close();
     };
-  }, [socket, localUsername]);
+  }, []);
 
   const handleOnPlay = (event) => {
     const sound = sounds.find(({ id }) => id === event.id);
-    socket.emit("sound", { sound, user });
+    socket.send(JSON.stringify({ type: "sound", sound }));
   };
 
   const handleChangeUser = ({ username }) => {
-    setLocalUsername(username);
-    socket.emit("update user", { id: user.id, username });
+    window.localStorage.setItem("username", username);
+    socket.send(JSON.stringify({ type: "updateuser", username }));
   };
 
   return (
     <Wrapper className="App">
       <Main>
         <Header>
-          <Label>Connections: {numUsers}</Label>
+          <Label>Connections: {users.size}</Label>
           <Separator size={24} />
           <UserForm
-            value={localUsername || user.name}
+            value={window.localStorage.getItem("username") || user.name}
             onSubmit={handleChangeUser}
           />
         </Header>
@@ -265,7 +351,7 @@ function App() {
         {/* eslint-disable-next-line jsx-a11y/no-distracting-elements */}
         <marquee>
           <ConnectedUsers>
-            {users.map(({ id, name }) => (
+            {Array.from(users)?.map(([id, name]) => (
               <ConnectedUsersItem yourself={id === user.id} key={id}>
                 <span role="img" aria-label="">
                   🥳
