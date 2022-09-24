@@ -276,7 +276,9 @@ function App() {
       console.log(
         `[event:sound] user: "${incomingUser.name}" is playing "${sound?.name}"`
       );
-      playAudio(sound.audio.src);
+      if (incomingUser.id !== user.id) {
+        playAudio(sound.audio.src);
+      }
     };
 
     const onOpen = () => {
