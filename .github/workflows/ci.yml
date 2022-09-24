@@ -11,6 +11,7 @@ on:
 env:
   VERCEL_SCOPE: ${{ secrets.ZEIT_NOW_SCOPE }}
   VERCEL_TOKEN: ${{ secrets.ZEIT_NOW_TOKEN }}
+  NODE_VERSION: 16
 
 jobs:
   deploy_preview:
@@ -19,7 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v3
+        with:
+          node-version: $NODE_VERSION
       - run: |
           npx vercel --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" --confirm --no-clipboard
 
@@ -29,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v3
+        with:
+          node-version: $NODE_VERSION
       - run: |
           npx vercel --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" --prod --confirm --no-clipboard
