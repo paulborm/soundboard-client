@@ -1,6 +1,6 @@
 # Soundboard-Client
 
-> Real-Time Soundboard
+> ⚠️ Moved to https://github.com/paulborm/soundboard
 
 ## Development
 
